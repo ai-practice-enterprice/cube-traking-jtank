@@ -6,7 +6,7 @@ from box_class import Box
 from zone_class import Zone
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
+qr_detector = cv2.QRCodeDetector()
 #Main window 
 cv2.namedWindow("scherm", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("scherm", 1600, 1200)
@@ -73,26 +73,26 @@ def display_images_in_grid(folder, grid_size=(3, 3), window_name="Image Grid"):
     # Display the grid
     cv2.imshow(window_name, grid_image)
     cv2.moveWindow(window_name, 50, 730)
-def update_boxes(sqares):
+def update_boxes(sqares,num,qrcode):
     global boxes
     boxes=[]
-    rat,frame = cap.read()
-    frame = cv2.rotate(frame, cv2.ROTATE_180)
     for index, sqare in enumerate(sqares, start=1):
-        box_mask(frame, sqare, index)
+        # box_mask(qrcode[0],index) werkt momenteel niet ben moe
         if cv2.getWindowProperty("Image Grid", cv2.WND_PROP_VISIBLE) >= 1:
             cv2.destroyWindow("Image Grid")
         display_images_in_grid(folder)
-        box = Box(sqare, 1)  # dit numer later nog veranderen naar het nummer van de box
-        # box = Box(sqare, get_box_digit(box_mask(frame, sqare)))
+        try:
+            box = Box(sqare, int(num[(index-1)]))
+        except:
+            box = Box(sqare,0)# fix this this is a mess 
         boxes.append(box)
     for zone in zones:
         zone.boxes_in_zone(boxes)
 def get_zones():
     global zones
-    start=(0,477)
-    area=(160,240)#X,Y
-    between=240
+    start=(0,1080)
+    area=(400,600)#X,Y
+    between=755
     aantal=3
     row=2
     colom=3
@@ -105,28 +105,15 @@ def get_zones():
     for points in zones_points:
      zones.append(Zone(points,number,row,colom))
      number+=1
-def filter(frame, hsv, mask):
+def filter(frame):
     key = cv2.waitKey(1) & 0xFF
     if key == 27:  # ESC
         cap.release()
         cv2.destroyAllWindows()
         exit()
-    if slider_filter == 0:
-        display_frame = frame.copy()
-    elif slider_filter == 1:
-        if mask is not None:
-            display_frame = cv2.bitwise_and(frame, frame, mask=mask)
-        else:
-            display_frame = frame.copy()
-    elif slider_filter == 2:
-        if mask is not None:
-            display_frame = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        else:
-            display_frame = frame.copy()
-    elif slider_filter == 3:
-        display_frame = hsv.copy()
+    display_frame = frame.copy()
     cv2.imshow("scherm", display_frame)
-def box_mask(frame, points,number):
+def box_mask(qrcode,number):
     # Check if the folder exists
     if os.path.exists(folder):
         if number==1:
@@ -143,36 +130,8 @@ def box_mask(frame, points,number):
     else:
         # If it does not exist, create the folder
         os.makedirs(folder)
-    mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-    cv2.fillPoly(mask, [np.array(points, dtype=np.int32)], 255)
-    roi = cv2.bitwise_and(frame, frame, mask=mask)
-    x, y, w, h = cv2.boundingRect(np.array(points, dtype=np.int32))
-    cropped_box = roi[y:y+h, x:x+w]
     output_path=f"{folder}/extracted_box{number}.png"
-    cv2.imwrite(output_path, cropped_box)
-def get_points(frame, mask):
-    points = []
-    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    for contour in contours:
-        if cv2.contourArea(contour) > 15:
-            M = cv2.moments(contour)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                points.append((cX, cY))
-                # cv2.drawContours(frame, [contour], -1, (0, 255, 0), 2)
-    return points
-def are_points_within_tolerance(list1, list2, tolerance):
-    if len(list1) != len(list2):
-        return False
-    tolerance_sq = tolerance ** 2
-    for (x1, y1), (x2, y2) in zip(list1, list2):
-        dx = x1 - x2
-        dy = y1 - y2
-        distance_sq = dx ** 2 + dy ** 2
-        if distance_sq > tolerance_sq:
-            return False
-    return True
+    cv2.imwrite(output_path,qrcode)
 def arrange_squares(result_2d_array, points):
     if len(points) % 4 != 0:
         raise ValueError(f"The number of points must be divisible by 4. number of points got {len(points)}")
@@ -245,11 +204,11 @@ def draw_zone(zone,color):
     cv2.fillPoly(overlay, [pts], color=color)
     alpha = 0.3  # Transparency factor
     cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
-def draw_box(frame, box, corner=(0, 255, 0), center=(255, 0, 0), dia=2):
+def draw_box(frame, box, corner=(0, 255, 0), center=(255, 0, 0), dia=6):
     for point in box.points:
         cv2.circle(frame, point, dia, corner, -1)
     cv2.circle(frame,box.center, dia+1, center, -1)
-    cv2.putText(frame, f"X:{box.center[0]},Y:{box.center[1]},N:{box.number}", (box.center[0]-45, box.center[1]+45), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.putText(frame, f"X:{box.center[0]},Y:{box.center[1]},N:{box.number}", (box.center[0]-75, box.center[1]+45), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 40, 200), 2, cv2.LINE_AA)
 
 def draw_debug(sqares):
     global sucess, fail,max_slider,slider_box
@@ -296,57 +255,22 @@ def update_slider(val, select):
     elif select == 3:
         slider_zone = val
 
-# def get_solution():
 #     for zone in sub:
 get_zones()
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    frame = cv2.rotate(frame, cv2.ROTATE_180)
-    # frame = cv2.GaussianBlur(frame, (blur, blur), 0)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
-    points = get_points(frame, mask_red)
-    if len(list_points)<gem:
-        if len(points) % 4 == 0 :
-            if len(list_points)==0 or (len(points) == len(list_points[-1]) and are_points_within_tolerance(points, list_points[-1],point_tolerance)) :
-                list_points.append(points)
-                error_rate=error_rate_mem
-            else:
-                error_rate-=1
-                if error_rate==0:
-                    list_points=[]
-                    error_rate=error_rate_mem
-    else  :
-        transposed = list(zip(*list_points))
-        gem_points = []
-        for groep in transposed: # het gemidelde uitreken van de gem points
-            # Verzamel alle x- en y-punten voor de huidige groep
-            x_points = [t[0] for t in groep]
-            y_points = [t[1] for t in groep]
+    # frame = cv2.rotate(frame, cv2.ROTATE_180) momenteel niet 
 
-            # Bereken het gemiddelde voor x en y
-            gem_x = sum(x_points) / len(x_points)
-            gem_y = sum(y_points) / len(y_points)
+    ret_qr, decoded_info, sqares, straight_qr = qr_detector.detectAndDecodeMulti(frame)
+    if ret_qr:
+        sqares=[[tuple(int(coord) for coord in point) for point in sublist] for sublist in sqares]
 
-            # Voeg het gemiddelde toe als tuple (gecast naar integers)
-            gem_points.append((int(gem_x), int(gem_y)))
-        list_points=[]
-        error_rate=error_rate_mem
-        if len(old_gem_points) == 0 or not are_points_within_tolerance(old_gem_points,gem_points,point_tolerance):
-            try:
-                sqares=[]
-                arrange_squares(sqares,gem_points)
-                print(sqares)
-                update_boxes(sqares)
-                old_gem_points=gem_points
-                # print(boxes)
-                sucess+=1
-            except Exception as e:
-                print(f"Error: {e}")
-                fail+=1
-
+        print(sqares)
+        update_boxes(sqares,decoded_info,straight_qr)
+    else:
+        sqares=[]
     for zone in zones:
         if slider_zone ==1 or slider_zone==3:
             draw_zone(zone.points,(0, 165, 255))
@@ -361,6 +285,6 @@ while True:
     elif slider_box !=0 and len(boxes)>=slider_box:
          draw_box(frame, boxes[slider_box-1])
     draw_debug(sqares)
-    filter(frame, hsv, mask_red)
+    filter(frame)
 cap.release()
 cv2.destroyAllWindows()
