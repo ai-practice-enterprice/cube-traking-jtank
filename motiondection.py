@@ -60,9 +60,9 @@ while True:
         else:
             draw_zone(zone.points, (0, 165, 255))  # Orange for no motion
             
-        # Add text to indicate if motion detection is enabled
+        # Add text to
         center = zone.get_center()
-        status_text = "ON" if zone.motion_detection_enabled else "OFF"
+        status_text = "Active" if zone.motion_detection_enabled else "Inactive"
         cv2.putText(frame, f"Zone {zone.number}: {status_text}", 
                    (center[0] - 50, center[1]), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
@@ -86,6 +86,7 @@ while True:
     elif key == ord('5'):
         for zone in zones:
             zone.toggle_motion_detection()
+    
 
 cap.release()
 cv2.destroyAllWindows()

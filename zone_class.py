@@ -7,7 +7,7 @@ class Zone:
         self.number = number
         self.motion_detected = False
         self.motion_detection_enabled = True
-        self.motion_threshold = 100000  # Adjustable threshold
+        self.motion_threshold = 1000000  # Adjustable threshold
     
     def get_center(self):
         center_x = sum(p[0] for p in self.points) // len(self.points)
