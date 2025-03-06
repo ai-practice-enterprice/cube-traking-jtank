@@ -1,44 +1,59 @@
+import numpy as np
+import cv2
+
 class Zone:
-    def __init__(self, points, number,row,col):#row horizontaal(x) col verticaal(y)
-        self.points=points
+    def __init__(self, points, number, row, col):
+        self.points = points
         self.number = number
-        self.row = row
-        self.col = col
-        self.corect_boxes=[]
-        self.incorect_boxes=[]
-        self.cal_subzones(points, row, col)
-    def cal_subzones(self, points,row,col):
-        sqare_x=round(abs(points[0][0]-points[1][0])/row)
-        sqare_y=round(abs(points[0][1]-points[2][1])/col)
-        self.subzones=[]
-        xy=(points[0])
-        for sqares_y in range(col):
-            for sqares_x in range(row):
-                sqare=[]
-                sqare.append(xy)
-                sqare.append((xy[0]+sqare_x,xy[1]))
-                sqare.append((xy[0]+sqare_x,xy[1]+sqare_y))
-                sqare.append((xy[0],xy[1]+sqare_y))
-                self.subzones.append(sqare)
-                xy=(xy[0]+sqare_x,xy[1])
-            xy=(points[0][0],xy[1]+sqare_y)
-    def boxes_in_zone(self,boxes):
-        self.corect_boxes=[]
-        self.incorect_boxes=[]
-        for index, sub_zone in enumerate(self.subzones):
-            in_zone=False
-            for box in boxes:
-                point=box.center
-                if sub_zone[0][0] <= point[0] <= sub_zone[1][0] and sub_zone[0][1] <= point[1] <= sub_zone[2][1]:
-                    in_zone = True
-                    break
-            if in_zone:
-                if box.number==self.number:
-                    self.corect_boxes.append((box,index))
-                else:
-                    self.incorect_boxes.append((box,index))
-    def get_center_subzone(self,index):
-        subzone = self.subzones[index]
-        center_x = (subzone[0][0] + subzone[2][0]) // 2
-        center_y = (subzone[0][1] + subzone[2][1]) // 2
+        self.motion_detected = False
+        self.motion_detection_enabled = True
+        self.motion_threshold = 100000  # Adjustable threshold
+    
+    def get_center(self):
+        center_x = sum(p[0] for p in self.points) // len(self.points)
+        center_y = sum(p[1] for p in self.points) // len(self.points)
         return (center_x, center_y)
+        
+    def somting_in_zone(self, frame):
+        # Skip if motion detection is disabled
+        if not self.motion_detection_enabled:
+            return
+            
+        # Convert current frame to grayscale
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        # If this is the first call, initialize previous frame
+        if not hasattr(self, 'prev_gray'):
+            self.prev_gray = gray
+            return
+        
+        # Create mask for the zone
+        mask = np.zeros_like(gray)
+        points_array = np.array(self.points, np.int32)
+        cv2.fillPoly(mask, [points_array], 255)
+        
+        # Calculate absolute difference between current and previous frames
+        # But only in the zone area using the mask
+        frame_diff = cv2.absdiff(gray, self.prev_gray)
+        frame_diff = cv2.bitwise_and(frame_diff, frame_diff, mask=mask)
+        
+        # Apply threshold to difference
+        _, thresh = cv2.threshold(frame_diff, 20, 255, cv2.THRESH_BINARY)
+        
+        # Calculate motion score (sum of thresholded pixels)
+        motion_score = np.sum(thresh)
+        
+        # Check if motion score exceeds threshold
+        if motion_score > self.motion_threshold:
+            self.motion_detected = True
+        
+        # Update previous frame for next comparison
+        self.prev_gray = gray
+        
+    def reset_motion(self):
+        self.motion_detected = False
+        
+    def toggle_motion_detection(self):
+        self.motion_detection_enabled = not self.motion_detection_enabled
+        if not self.motion_detection_enabled:
+            self.motion_detected = False
