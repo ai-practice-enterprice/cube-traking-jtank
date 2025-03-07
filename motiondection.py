@@ -54,7 +54,7 @@ while True:
         # Check for motion detection
         zone.somting_in_zone(frame)
         
-        # Draw the zone in red if motion detected, otherwise in orange
+        # Draw the zone in red if motion detected
         if zone.motion_detected:
             draw_zone(zone.points, (0, 0, 255))  # Red for motion
         else:
@@ -73,11 +73,11 @@ while True:
     # Handle key presses
     key = cv2.waitKey(1) & 0xFF
     
-    # Press 'q' to quit
+    # 'q' to quit
     if key == ord('q'):
         break
     
-    # Press '0' to reset all motion detection flags
+    # '0' to reset all motion detection
     elif key == ord('0'):
         for zone in zones:
             zone.reset_motion()
@@ -86,7 +86,13 @@ while True:
     elif key == ord('5'):
         for zone in zones:
             zone.toggle_motion_detection()
-    
+    elif key == ord('1'):
+            zones[0].toggle_motion_detection()
+    elif key == ord('2'):
+         zones[0].toggle_motion_detection()
+    elif key == ord('3'):
+         zones[0].toggle_motion_detection()
+
 
 cap.release()
 cv2.destroyAllWindows()

@@ -7,7 +7,7 @@ class Zone:
         self.number = number
         self.motion_detected = False
         self.motion_detection_enabled = True
-        self.motion_threshold = 1000000  # Adjustable threshold
+        self.motion_threshold = 650000  # Adjustable threshold
     
     def get_center(self):
         center_x = sum(p[0] for p in self.points) // len(self.points)
@@ -19,7 +19,7 @@ class Zone:
         if not self.motion_detection_enabled:
             return
             
-        # Convert current frame to grayscale
+        # current frame to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
         # If this is the first call, initialize previous frame
