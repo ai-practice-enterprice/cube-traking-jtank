@@ -14,7 +14,7 @@ class Zone:
         center_y = sum(p[1] for p in self.points) // len(self.points)
         return (center_x, center_y)
         
-    def somting_in_zone(self, frame):
+    def something_in_zone(self, frame):
         # Skip if motion detection is disabled
         if not self.motion_detection_enabled:
             return
