@@ -5,6 +5,15 @@ import shutil
 import httpx
 from zone_class import Zone
 
+import threading # to add (perhaps)
+# IMPROVEMENTS =======================================
+# consider using the standard python module "threading"
+# while Python doesn't use multiple threads under the hood (due to the GIL)
+# threading will allow you to improve the usage of 1 single thread
+# by keeping every part of the thread busy
+# https://realpython.com/intro-to-python-threading/
+# IMPROVEMENTS =======================================
+
 def get_zones(
     zones: list,
     start: tuple[int,int] = (0, 477),
@@ -46,10 +55,12 @@ def main(
     cap: cv2.VideoCapture,
     waitTime: 500,
     windowName: str,
-    keyPressMapping: dict[str,str]
+    keyPressMapping: dict[str,str],
+    automaticZoneToggle: bool = False,
 ):
     while cv2.getWindowProperty(windowName, cv2.WND_PROP_VISIBLE) >= 1:
         ret, frame = cap.read()
+        # Handle each zone detection ==============================================
         for zone in zones:
             # Check for motion detection
             zone.something_in_zone(frame)
@@ -58,15 +69,15 @@ def main(
                 draw_zone(frame,zone.points, (0, 0, 255))  # Red for motion
             else:
                 draw_zone(frame,zone.points, (0, 165, 255))  # Orange for no motion
+        # Handle each zone detection ==============================================
 
-            # Add text to zones
-            center = zone.get_center()
-            status_text = "Active" if zone.motion_detection_enabled else "Inactive"
-            cv2.putText(frame, f"Zone {zone.number}: {status_text}", 
-                    (center[0] - 50, center[1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        
+        # draw the image to the main window        
         cv2.imshow(windowName, frame)
+
+        # if enabled will handle the ressetting of all zones automatically
+        if automaticZoneToggle:
+            for zone in zones:
+                zone.reset_motion()
         
         # Handle key presses ==============================================
         key = cv2.waitKey(waitTime) & 0xFF
@@ -84,9 +95,18 @@ def main(
             zones[1].toggle_motion_detection()
         elif key == ord(keyPressMapping["toggle zone 3"]):
             zones[2].toggle_motion_detection()
+        # Press 'a' to let the zones reset their motion state automatically
+        elif key == ord(keyPressMapping["toggle reset motion auto"]):
+            automaticZoneToggle = not automaticZoneToggle
         # Handle key presses ==============================================
 
-
+# if multiple camera's connected change this to the required value
+# e.g.: 
+# - webcam == 1
+# - Xbox Kinect == 2
+# - add camera == 3
+# - etc...
+# these values might/might not be a one-on-one copy of your devices seen in your device manager of your OS 
 cap = cv2.VideoCapture(0)
 zones = []
 windowName = "Monitor"
@@ -97,6 +117,7 @@ keyPressMapping = {
     "toggle zone 1" : '1',
     "toggle zone 2" : '2',
     "toggle zone 3" : '3',
+    "toggle reset motion auto" : 'a',
 }
 
 cv2.namedWindow(windowName, cv2.WINDOW_KEEPRATIO)
