@@ -1,11 +1,20 @@
 import cv2
 import numpy as np
+import os
+import shutil
 import httpx
 BASE_URL = "http://localhost:8000/camera" #server addres
 # import httpx
 from zone_class import Zone
 
-import threading # to add (perhaps) will look in to it :)
+import threading # to add (perhaps)
+# IMPROVEMENTS =======================================
+# consider using the standard python module "threading"
+# while Python doesn't use multiple threads under the hood (due to the GIL)
+# threading will allow you to improve the usage of 1 single thread
+# by keeping every part of the thread busy
+# https://realpython.com/intro-to-python-threading/
+# IMPROVEMENTS =======================================
 def update_server(zone_data):
     response = httpx.post(f"{BASE_URL}/zoneinfo", json=zone_data)
     if response.status_code == 200:
@@ -47,8 +56,6 @@ def draw_zone(frame, zone, color):
     cv2.polylines(frame, [pts], isClosed=True, color=color, thickness=2)
     cv2.fillPoly(overlay, [pts], color=color)
     cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
-
-
 
 def main(
     zones: list[Zone], 
@@ -113,7 +120,6 @@ def main(
             automaticZoneToggle = not automaticZoneToggle
         # Handle key presses ==============================================
 
-<<<<<<< HEAD
 # if multiple camera's connected change this to the required value
 # e.g.: 
 # - webcam == 1
@@ -121,14 +127,7 @@ def main(
 # - add camera == 3
 # - etc...
 # these values might/might not be a one-on-one copy of your devices seen in your device manager of your OS 
-cap = cv2.VideoCapture(1)
-=======
-# next up implement mulie cam (forgot webcam on school)
-
-
-
-cap = cv2.VideoCapture(0)
->>>>>>> b1a2112b371bd7958a2bde30d214e3dcb736337b
+cap = cv2.VideoCapture(1,cv2.CAP_DSHOW)
 zones = []
 windowName = "Monitor"
 waitTime = 20
