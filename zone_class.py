@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 
 class Zone:
-    def __init__(self, points, number, row, col):
+    def __init__(self, points, id, row, col):
         self.points = points
-        self.number = number
+        self.id = id
         self.motion_detected = False
         self.motion_detection_enabled = True
         self.motion_threshold = 650000  # Adjustable threshold
