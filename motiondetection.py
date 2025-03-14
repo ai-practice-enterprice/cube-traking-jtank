@@ -107,7 +107,7 @@ def main(
 # - add camera == 3
 # - etc...
 # these values might/might not be a one-on-one copy of your devices seen in your device manager of your OS 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 zones = []
 windowName = "Monitor"
 waitTime = 20
