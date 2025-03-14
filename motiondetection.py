@@ -3,9 +3,11 @@ import numpy as np
 import os
 import shutil
 import httpx
-BASE_URL = "http://localhost:8000/camera" #server addres
 # import httpx
 from zone_class import Zone
+
+BASE_URL = "http://localhost:8000/camera" #server addres
+API_SERVER_URL = "http://localhost:8000/camera"
 
 import threading # to add (perhaps)
 # IMPROVEMENTS =======================================
@@ -15,12 +17,14 @@ import threading # to add (perhaps)
 # by keeping every part of the thread busy
 # https://realpython.com/intro-to-python-threading/
 # IMPROVEMENTS =======================================
+
 def update_server(zone_data):
     response = httpx.post(f"{BASE_URL}/zoneinfo", json=zone_data)
     if response.status_code == 200:
         return response.json()
     else:
         print("Error:", response.text)
+
 def get_zones(
     zones: list,
     start: tuple[int,int] = (0, 477),
